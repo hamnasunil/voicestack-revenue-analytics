@@ -1,703 +1,409 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
-  LayoutDashboard, 
-  ClipboardCheck, 
-  MapPin, 
-  Phone, 
-  Settings, 
-  FileText, 
-  Users, 
-  CheckCircle2, 
-  Circle, 
-  Clock, 
-  AlertCircle, 
-  ChevronRight, 
-  ChevronLeft, 
-  MoreHorizontal, 
-  Search, 
-  Plus, 
-  Download, 
-  MessageSquare, 
-  ArrowRight,
-  Info,
-  Save,
-  Upload,
-  Eye,
-  Trash2,
-  Copy,
-  Lock,
-  Unlock,
-  Filter,
-  RefreshCcw,
-  Layers,
-  ArrowUpRight,
-  Calendar,
-  Building2,
-  History,
-  ShieldCheck,
-  Sticker,
-  UserPlus,
-  Mail,
-  Briefcase,
-  FileBadge,
-  Tag
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
+import { 
+  Download, Calendar, MapPin, Phone, 
+  ChevronRight, CheckCircle, Target, Radio, 
+  Globe, ChevronDown, X, Layers, Search,
+  TrendingUp, ListFilter, Info, UserPlus, UserCheck, Zap, Filter
 } from 'lucide-react';
 
-// --- Constants ---
-
-const ROLES = {
-  PRACTICE_ADMIN: 'Practice Admin',
-  INTERNAL_IMPLEMENTATION: 'Implementation Team'
-};
-
-const ROLLOUT_STAGES = [
-  'Onboarding',
-  'Kickoff',
-  'Document Verification',
-  'Device Ordering',
-  'Porting',
-  'Pre Go-Live',
-  'Go Live'
+// --- DATASET: MASTER PERFORMANCE REPOSITORY ---
+const MASTER_DATA = [
+  { id: '1', location: 'Dallas', source: 'Google Organic', channelType: 'Static', campaign: 'SEO_Primary', keyword: 'dentist', tracker: 'Organic', total: 236, answered: 210, missed: 26, npTotal: 130, npOpp: 236, npBooked: 84, npNotBooked: 152, epTotal: 106, epOpp: 70, epBooked: 30, epNotBooked: 40 },
+  { id: '2', location: 'Dallas', source: 'Google ads', channelType: 'Dynamic', campaign: 'DSA_Generic_Ads', keyword: 'Dentist near me', tracker: 'Morrocco', total: 82, answered: 78, missed: 4, npTotal: 40, npOpp: 82, npBooked: 37, npNotBooked: 45, epTotal: 42, epOpp: 85, epBooked: 58, epNotBooked: 27 },
+  { id: '2b', location: 'Dallas', source: 'Google ads', channelType: 'Dynamic', campaign: 'Implants_Focus', keyword: 'cheap dental implants', tracker: 'DNI_Pool_01', total: 45, answered: 40, missed: 5, npTotal: 25, npOpp: 45, npBooked: 15, npNotBooked: 30, epTotal: 20, epOpp: 30, epBooked: 12, epNotBooked: 8 },
+  { id: '3', location: 'Dallas', source: 'Facebook', channelType: 'Dynamic', campaign: 'Emergency_Dental', keyword: 'teeth ache', tracker: 'England', total: 72, answered: 65, missed: 7, npTotal: 32, npOpp: 72, npBooked: 42, npNotBooked: 30, epTotal: 40, epOpp: 70, epBooked: 47, epNotBooked: 23 },
+  { id: '4', location: 'Dallas', source: 'Bing', channelType: 'Dynamic', campaign: 'Search_Brand', keyword: 'clinic', tracker: 'London', total: 107, answered: 100, missed: 7, npTotal: 100, npOpp: 107, npBooked: 59, npNotBooked: 48, epTotal: 7, epOpp: 24, epBooked: 17, epNotBooked: 7 },
+  { id: '5', location: 'East Town', source: 'Google ads', channelType: 'Dynamic', campaign: 'DSA_Generic_Ads', keyword: 'Dentist near me', tracker: 'Morrocco', total: 82, answered: 75, missed: 7, npTotal: 40, npOpp: 82, npBooked: 37, npNotBooked: 45, epTotal: 42, epOpp: 85, epBooked: 58, epNotBooked: 27 },
+  { id: '6', location: 'East Town', source: 'Facebook', channelType: 'Dynamic', campaign: 'Emergency_Dental', keyword: 'implant', tracker: 'England', total: 72, answered: 70, missed: 2, npTotal: 32, npOpp: 72, npBooked: 42, npNotBooked: 30, epTotal: 40, epOpp: 70, epBooked: 47, epNotBooked: 23 },
+  { id: '6b', location: 'East Town', source: 'Facebook', channelType: 'Dynamic', campaign: 'Retargeting_Lapsed', keyword: 'n/a', tracker: 'DNI_Pool_02', total: 30, answered: 28, missed: 2, npTotal: 10, npOpp: 30, npBooked: 8, npNotBooked: 22, epTotal: 20, epOpp: 25, epBooked: 15, epNotBooked: 5 },
+  { id: '7', location: 'East Town', source: 'Bing', channelType: 'Static', campaign: '', keyword: 'braces', tracker: 'Main_Line', total: 107, answered: 105, missed: 2, npTotal: 100, npOpp: 107, npBooked: 59, npNotBooked: 48, epTotal: 7, epOpp: 24, epBooked: 17, epNotBooked: 7 },
 ];
 
-const PROGRESS_STATES = [
-  'Not Started',
-  'In Progress',
-  'Pending Review',
-  'Changes Requested',
-  'Completed'
-];
-
-const PRACTICE_BASE_DATA = {
-  name: "BrightSmiles Dental Group",
-  address: "500 N Michigan Ave, Suite 600, Chicago, IL 60611",
-  totalLocations: 100,
-  sharedProgress: 82,
-  contractStatus: "Active - Annual Enterprise",
-  contractRenewal: "Aug 12, 2025",
-  salesNotes: "Aggressive expansion planned for Q4. Focus on high-quality audio branding. Primary competitor was RingCentral.",
-  poc: {
-    primary: { name: "Dr. Sarah Lee", role: "Owner / Lead Dentist", email: "dr.lee@brightsmiles.com", phone: "(312) 555-0192", pref: "Email" },
-    backup: { name: "James Wilson", role: "Operations Manager", email: "j.wilson@brightsmiles.com", phone: "(312) 555-0195", pref: "Phone" }
-  },
-  stageDistribution: [
-    { stage: 'Onboarding', count: 15 },
-    { stage: 'Kickoff', count: 12 },
-    { stage: 'Doc Verification', count: 8 },
-    { stage: 'Device Ordering', count: 10 },
-    { stage: 'Porting', count: 5 },
-    { stage: 'Pre Go-Live', count: 6 },
-    { stage: 'Go Live', count: 44 }
-  ]
+const COLORS = {
+  new: '#6366F1',
+  ex: '#D1D5DB'
 };
 
-const MOCK_LOCATIONS = [
-  { id: 1, name: "Downtown Main Clinic", city: "Chicago", stage: 'Porting', state: 'In Progress', progress: 65 },
-  { id: 2, name: "North Hills Pediatric", city: "Evanston", stage: 'Onboarding', state: 'Changes Requested', progress: 15 },
-  { id: 3, name: "Westside Family Dental", city: "Oak Park", stage: 'Device Ordering', state: 'Pending Review', progress: 45 },
-  { id: 4, name: "Lakeside Specialists", city: "Chicago", stage: 'Go Live', state: 'Completed', progress: 100 },
-];
-
-// --- Sub-Components ---
-
-const Badge = ({ children, variant = 'default' }) => {
-  const styles = {
-    default: 'bg-slate-100 text-slate-700',
-    success: 'bg-emerald-100 text-emerald-700',
-    warning: 'bg-amber-100 text-amber-700',
-    info: 'bg-blue-100 text-blue-700',
-    error: 'bg-red-100 text-red-700',
-    indigo: 'bg-indigo-100 text-indigo-700',
-  };
-  return <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${styles[variant]}`}>{children}</span>;
+// --- HELPER: Percentage Formatting ---
+const formatValue = (val, total, isOpp = false, rowTotalOpp = 0) => {
+  if (!total || total === 0) return `${val}(0%)`;
+  if (isOpp) {
+    const pct = rowTotalOpp > 0 ? ((val / rowTotalOpp) * 100).toFixed(2) : '0';
+    return `${val}(${pct}%)`;
+  }
+  const pct = ((val / total) * 100).toFixed(2).replace(/\.00$/, '');
+  return `${val}(${pct}%)`;
 };
 
-const ContactCard = ({ title, data, onEdit, isBackup = false }) => (
-  <div className={`p-5 rounded-3xl border ${isBackup ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100 shadow-sm'}`}>
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex items-center gap-2">
-        <div className={`p-2 rounded-xl ${isBackup ? 'bg-slate-200 text-slate-500' : 'bg-blue-50 text-blue-600'}`}>
-          <Users size={16} />
-        </div>
-        <h4 className="text-sm font-bold text-slate-800">{title}</h4>
-      </div>
-      <button className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Edit</button>
-    </div>
-    {data ? (
-      <div className="space-y-3">
-        <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase">Name & Role</p>
-          <p className="text-sm font-bold text-slate-700">{data.name}</p>
-          <p className="text-xs text-slate-500">{data.role}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Email</p>
-            <p className="text-xs text-slate-700 truncate">{data.email}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Phone</p>
-            <p className="text-xs text-slate-700">{data.phone}</p>
-          </div>
-        </div>
-        <div className="pt-2 border-t border-slate-100">
-           <Badge variant="info">Prefers: {data.pref}</Badge>
-        </div>
-      </div>
-    ) : (
-      <button className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-bold hover:bg-white transition-all flex items-center justify-center gap-2">
-        <Plus size={14} /> Add Backup POC
-      </button>
-    )}
-  </div>
-);
+// --- MULTI-SELECT FILTER COMPONENT ---
+const MultiSelectFilter = ({ label, options, selected, onToggle, onClear, disabled }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef(null);
 
-const LifecycleTracker = ({ currentStage, currentState }) => {
-  const activeIndex = ROLLOUT_STAGES.indexOf(currentStage);
-  
+  useEffect(() => {
+    const handleOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  const filtered = options.filter(o => (o || '').toLowerCase().includes(query.toLowerCase()));
+
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Lifecycle Stage</p>
-          <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{currentStage}</h3>
-            <Badge variant={
-              currentState === 'Completed' ? 'success' : 
-              currentState === 'Changes Requested' ? 'error' : 
-              currentState === 'Pending Review' ? 'warning' : 'info'
-            }>{currentState}</Badge>
-          </div>
-        </div>
-        <div className="text-right">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Overall Completion</p>
-           <p className="text-xl font-black text-blue-600">{( (activeIndex + 1) / ROLLOUT_STAGES.length * 100).toFixed(0)}%</p>
-        </div>
-      </div>
-      
-      <div className="relative flex justify-between">
-        <div className="absolute top-[15px] left-0 right-0 h-1 bg-slate-100 -z-10 rounded-full">
-          <div className="h-full bg-blue-600 transition-all duration-500 rounded-full" style={{ width: `${(activeIndex / (ROLLOUT_STAGES.length - 1)) * 100}%` }}></div>
-        </div>
-        {ROLLOUT_STAGES.map((stage, i) => (
-          <div key={stage} className="flex flex-col items-center group relative cursor-help">
-            <div className={`w-8 h-8 rounded-full border-4 border-white shadow-sm flex items-center justify-center transition-all ${
-              i < activeIndex ? 'bg-emerald-500' : 
-              i === activeIndex ? 'bg-blue-600 ring-4 ring-blue-100' : 'bg-slate-200'
-            }`}>
-              {i < activeIndex ? <CheckCircle2 size={14} className="text-white" /> : <span className={`text-[10px] font-bold ${i === activeIndex ? 'text-white' : 'text-slate-500'}`}>{i + 1}</span>}
-            </div>
-            <p className={`absolute -bottom-8 whitespace-nowrap text-[9px] font-black uppercase tracking-tighter transition-all ${i === activeIndex ? 'text-blue-600 opacity-100' : 'text-slate-400 opacity-0 group-hover:opacity-100'}`}>
-              {stage}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// --- Main Application ---
-
-export default function App() {
-  const [role, setRole] = useState(ROLES.PRACTICE_ADMIN);
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [activeLocation, setActiveLocation] = useState(null);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [showCloneModal, setShowCloneModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-
-  // Layout logic
-  const renderPracticeDashboard = () => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex justify-between items-start">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-800 tracking-tighter">{PRACTICE_BASE_DATA.name}</h1>
-          <div className="flex items-center gap-3 text-slate-500 font-medium">
-            <MapPin size={16} className="text-blue-500" />
-            <span className="text-sm">{PRACTICE_BASE_DATA.address}</span>
-            <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
-            <span className="text-sm font-bold text-slate-700">{PRACTICE_BASE_DATA.totalLocations} Locations</span>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowInviteModal(true)} className="bg-white border border-slate-200 px-4 py-2.5 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 flex items-center gap-2 shadow-sm">
-            <UserPlus size={18} /> Invite Team
-          </button>
-          <button onClick={() => setShowExportModal(true)} className="bg-white border border-slate-200 px-4 py-2.5 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 flex items-center gap-2 shadow-sm">
-            <Download size={18} /> Export Workspace
-          </button>
-        </div>
-      </header>
-
-      {/* Stage Summary Rollup */}
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-        <div className="flex justify-between items-center mb-8">
-           <div>
-              <h3 className="text-xl font-black text-slate-800 tracking-tight">Rollout Portfolio Summary</h3>
-              <p className="text-sm text-slate-400">Distribution of 100 locations by lifecycle stage</p>
-           </div>
-           <Badge variant="indigo">Live Tracker</Badge>
-        </div>
-        <div className="grid grid-cols-7 gap-4">
-          {PRACTICE_BASE_DATA.stageDistribution.map((item, i) => (
-            <div key={item.stage} className="text-center group">
-              <div className="relative h-32 bg-slate-50 rounded-2xl flex items-end justify-center overflow-hidden mb-3">
-                 <div 
-                  className={`w-full transition-all duration-1000 ${i === 6 ? 'bg-emerald-500' : 'bg-blue-600 opacity-80 group-hover:opacity-100'}`} 
-                  style={{ height: `${(item.count / 50) * 100}%` }}
-                 ></div>
-                 <span className="absolute top-2 font-black text-slate-700 text-lg">{item.count}</span>
-              </div>
-              <p className="text-[9px] font-black text-slate-400 uppercase leading-tight px-1">{item.stage}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Location Board */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-               <h3 className="font-black text-slate-800">Active Execution Board</h3>
-               <div className="relative">
-                  <input type="text" placeholder="Search site..." className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-100 w-48" />
-                  <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
-               </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/50">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Lifecycle Stage</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">State</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {MOCK_LOCATIONS.map(loc => (
-                    <tr key={loc.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-6 py-5">
-                        <p className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{loc.name}</p>
-                        <p className="text-xs text-slate-400">{loc.city}</p>
-                      </td>
-                      <td className="px-6 py-5 font-bold text-xs text-slate-600 uppercase tracking-tight">
-                        {loc.stage}
-                      </td>
-                      <td className="px-6 py-5">
-                         <Badge variant={
-                          loc.state === 'Completed' ? 'success' : 
-                          loc.state === 'Changes Requested' ? 'error' : 
-                          loc.state === 'Pending Review' ? 'warning' : 'info'
-                        }>{loc.state}</Badge>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                         <button 
-                          onClick={() => { setActiveLocation(loc); setCurrentPage('location-detail'); }}
-                          className="p-2 bg-slate-100 text-slate-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
-                         >
-                           <ArrowUpRight size={18} />
-                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Sales & Contract Section */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-               <div className="flex items-center gap-3 mb-6">
-                 <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><FileBadge size={20}/></div>
-                 <h3 className="font-black text-slate-800">Contract Status</h3>
-               </div>
-               <div className="space-y-4">
-                 <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Tier & Status</p>
-                    <p className="text-sm font-bold text-slate-700">{PRACTICE_BASE_DATA.contractStatus}</p>
-                 </div>
-                 <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Renewal Date</p>
-                    <p className="text-sm font-bold text-slate-700">{PRACTICE_BASE_DATA.contractRenewal}</p>
-                 </div>
-                 <button className="w-full py-3 bg-slate-50 text-slate-500 font-bold text-xs rounded-xl hover:bg-slate-100">View Contract PDF</button>
-               </div>
-            </div>
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-               <div className="flex items-center gap-3 mb-6">
-                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><Tag size={20}/></div>
-                 <h3 className="font-black text-slate-800">Sales Snippet</h3>
-               </div>
-               <p className="text-sm text-slate-500 leading-relaxed italic">
-                 "{PRACTICE_BASE_DATA.salesNotes}"
-               </p>
-               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Account Exec: Ryan G.</span>
-                  <button className="text-[10px] text-blue-600 font-bold hover:underline">Edit Notes</button>
-               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Practice POCs & Side Info */}
-        <div className="space-y-6">
-          <ContactCard title="Primary Practice POC" data={PRACTICE_BASE_DATA.poc.primary} />
-          <ContactCard title="Backup Practice POC" data={PRACTICE_BASE_DATA.poc.backup} isBackup />
-          
-          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">
-             <div className="relative z-10">
-               <h4 className="text-lg font-black tracking-tight mb-2">Practice Team</h4>
-               <p className="text-slate-400 text-xs mb-6 leading-relaxed">Manage other practice managers and contributors who have access to this workspace.</p>
-               <div className="space-y-3 mb-8">
-                  {[
-                    { name: 'Dr. Sarah Lee', initial: 'SL', role: 'Owner' },
-                    { name: 'James Wilson', initial: 'JW', role: 'Ops' },
-                  ].map(user => (
-                    <div key={user.name} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/10">
-                       <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-black">{user.initial}</div>
-                          <div>
-                            <p className="text-xs font-bold">{user.name}</p>
-                            <p className="text-[9px] text-slate-500 uppercase">{user.role}</p>
-                          </div>
-                       </div>
-                       <button className="p-1.5 text-slate-500 hover:text-white"><MoreHorizontal size={14}/></button>
-                    </div>
-                  ))}
-               </div>
-               <button onClick={() => setShowInviteModal(true)} className="w-full bg-blue-600 text-white py-3 rounded-2xl font-black text-xs hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/50">
-                 <UserPlus size={16} /> Invite New Manager
-               </button>
-             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderLocationDetail = () => {
-    if (!activeLocation) return null;
-    return (
-      <div className="space-y-8 animate-in slide-in-from-right-10 duration-500 pb-20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <button onClick={() => setCurrentPage('dashboard')} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-blue-600 shadow-sm transition-all">
-              <ChevronLeft size={24} />
-            </button>
-            <div>
-              <h1 className="text-4xl font-black text-slate-800 tracking-tighter">{activeLocation.name}</h1>
-              <p className="text-sm font-bold text-slate-500 flex items-center gap-2 mt-1">
-                <MapPin size={16} className="text-blue-500" /> {activeLocation.city} Branch • Site ID: #VOX-L1102
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => setShowCloneModal(true)} className="bg-white border border-slate-200 px-4 py-2.5 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 flex items-center gap-2 shadow-sm text-sm">
-              <Copy size={18} /> Clone Setup
-            </button>
-            <button className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 flex items-center gap-2 text-sm">
-              Submit Review <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
-           <LifecycleTracker currentStage={activeLocation.stage} currentState={activeLocation.state} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-           <div className="lg:col-span-8 space-y-8">
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                 <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Location Information</h3>
-                    <Badge variant="indigo">Required</Badge>
-                 </div>
-                 <div className="p-8 space-y-8">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch Name</label>
-                        <input type="text" value={activeLocation.name} readOnly className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 font-bold outline-none" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Service Address</label>
-                        <input type="text" placeholder="123 Dental Lane, Chicago IL 60614" className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100 font-bold" />
-                      </div>
-                    </div>
-                    
-                    <div className="pt-6 border-t border-slate-100 grid grid-cols-2 gap-6">
-                       <ContactCard title="Primary Location POC" data={PRACTICE_BASE_DATA.poc.primary} />
-                       <ContactCard title="Backup Location POC" />
-                    </div>
-                 </div>
-              </div>
-
-              {/* Internal Notes at Location Level */}
-              {role === ROLES.INTERNAL_IMPLEMENTATION && (
-                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-xl font-black flex items-center gap-3 tracking-tight"><ShieldCheck size={28} className="text-blue-500" /> Internal Site Implementation Notes</h3>
-                    <Badge variant="indigo">Implementation Only</Badge>
-                  </div>
-                  <div className="space-y-6 mb-8 text-sm">
-                    <div className="p-5 bg-white/5 rounded-[2rem] border border-white/10 relative">
-                       <div className="flex justify-between items-center mb-2">
-                          <span className="font-black text-blue-400">System Bot</span>
-                          <span className="text-[10px] text-slate-500 font-bold uppercase">Today 10:45 AM</span>
-                       </div>
-                       <p className="text-slate-300 italic leading-relaxed">"Site verified at 123 Dental Lane. IP whitelisting complete. Ready for porting stage."</p>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <textarea placeholder="Add a secure internal note for this location..." className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-sm text-white placeholder:text-slate-600 outline-none h-32 resize-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
-                    <button className="absolute bottom-4 right-4 bg-blue-600 p-3 rounded-2xl hover:bg-blue-700 shadow-xl transition-all"><ArrowRight size={20}/></button>
-                  </div>
+    <div className={`flex flex-col gap-1 ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`} ref={ref}>
+      <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest px-1">{label}</span>
+      <div className="relative">
+        <div 
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className="flex items-center gap-2 min-h-[40px] min-w-[200px] bg-white border border-slate-200 p-2 rounded-xl text-[11px] font-black shadow-sm cursor-pointer hover:border-indigo-400 transition-all"
+        >
+          {selected.length === 0 ? (
+            <span className="text-slate-400 px-2 italic font-medium">All...</span>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {selected.map(s => (
+                <div key={s} className="flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-indigo-200 group">
+                  {s || 'None'}
+                  <X size={10} className="cursor-pointer hover:text-rose-500" onClick={(e) => { e.stopPropagation(); onToggle(s); }} />
                 </div>
-              )}
-           </div>
-
-           <div className="lg:col-span-4 space-y-8">
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-                 <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center justify-between">
-                    Site Timeline 
-                    <History size={18} className="text-slate-300" />
-                 </h3>
-                 <div className="space-y-8 relative">
-                    <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-slate-50"></div>
-                    {[
-                      { t: 'Stage: Onboarding', d: 'Sep 01', s: 'done' },
-                      { t: 'Stage: Kickoff', d: 'Sep 03', s: 'done' },
-                      { t: 'Stage: Doc Verification', d: 'Sep 05', s: 'done' },
-                      { t: 'Stage: Device Ordering', d: 'Sep 08', s: 'done' },
-                      { t: 'Stage: Porting', d: 'Current', s: 'active' },
-                      { t: 'Stage: Pre Go-Live', d: 'Pending', s: 'todo' },
-                      { t: 'Stage: Go Live', d: 'Target: Oct 12', s: 'todo' },
-                    ].map(ev => (
-                      <div key={ev.t} className="relative pl-10">
-                         <div className={`absolute left-0 top-1 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center z-10 shadow-sm ${
-                           ev.s === 'done' ? 'bg-emerald-500' : 
-                           ev.s === 'active' ? 'bg-blue-600 animate-pulse' : 'bg-slate-100'
-                         }`}>
-                           {ev.s === 'done' && <CheckCircle2 size={14} className="text-white" />}
-                         </div>
-                         <div>
-                           <p className={`text-xs font-black uppercase tracking-widest ${ev.s === 'todo' ? 'text-slate-400' : 'text-slate-800'}`}>{ev.t}</p>
-                           <p className="text-[10px] font-bold text-slate-400 mt-0.5">{ev.d}</p>
-                         </div>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-
-              <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-200">
-                 <h4 className="text-lg font-black tracking-tight mb-4">Location Checklist</h4>
-                 <div className="space-y-3">
-                   {[
-                     { l: 'Business Hours Defined', c: true },
-                     { l: 'Call Flow Documented', c: true },
-                     { l: 'POC Information Complete', c: true },
-                     { l: 'Provider Bill Uploaded', c: false },
-                     { l: 'E911 Confirmed', c: false },
-                   ].map(item => (
-                     <div key={item.l} className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl border border-white/5">
-                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${item.c ? 'bg-emerald-500' : 'bg-white/20'}`}>
-                          {item.c && <CheckCircle2 size={12} />}
-                        </div>
-                        <span className="text-xs font-bold">{item.l}</span>
-                     </div>
-                   ))}
-                 </div>
-              </div>
-           </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderInviteModal = () => (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-       <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 animate-in zoom-in-95 duration-400">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">Invite Team Member</h2>
-              <p className="text-slate-400 text-sm mt-1">Grant access to the BrightSmiles Workspace.</p>
+              ))}
             </div>
-            <button onClick={() => setShowInviteModal(false)} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-2xl transition-all"><Plus size={24} className="rotate-45" /></button>
-          </div>
+          )}
+          <ChevronDown size={14} className={`ml-auto text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
 
-          <div className="space-y-6">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                   <input type="text" placeholder="John Doe" className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100 font-bold" />
-                </div>
-                <div className="space-y-1.5">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                   <input type="email" placeholder="john@example.com" className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100 font-bold" />
-                </div>
-             </div>
-
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Scope</label>
-                <div className="grid grid-cols-2 gap-4">
-                   <button className="p-4 border-2 border-blue-600 bg-blue-50 rounded-2xl text-xs font-black text-blue-700 text-left">Full Practice Access</button>
-                   <button className="p-4 border-2 border-slate-100 bg-slate-50 rounded-2xl text-xs font-black text-slate-400 text-left">Specific Locations Only</button>
-                </div>
-             </div>
-
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Permission Level</label>
-                <select className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 outline-none bg-slate-50 font-bold appearance-none">
-                   <option>Workspace Admin (Edit everything)</option>
-                   <option>Contributor (Fill forms only)</option>
-                   <option>Viewer (Read-only)</option>
-                </select>
-             </div>
-
-             <div className="flex gap-4 pt-6">
-                <button onClick={() => setShowInviteModal(false)} className="flex-1 py-4 font-black text-slate-400 hover:text-slate-600 uppercase text-xs tracking-widest">Cancel</button>
-                <button className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-                  <Mail size={18} /> Send Invitation
+        {isOpen && !disabled && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[200] p-2 animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative mb-2">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs tracking-widest"><Search size={12} /></div>
+              <input autoFocus type="text" placeholder="Search..." value={query} onChange={(e) => setQuery(e.target.value)} className="w-full pl-8 pr-4 py-1.5 bg-slate-50 border-none rounded-lg text-xs font-bold outline-none" />
+            </div>
+            <div className="max-h-56 overflow-y-auto custom-scrollbar">
+              <button onClick={() => { onClear(); setIsOpen(false); }} className="w-full text-left px-3 py-1.5 text-[10px] font-black text-rose-500 hover:bg-rose-50 rounded-lg uppercase mb-1">Reset</button>
+              {filtered.map(opt => (
+                <button key={opt} onClick={() => onToggle(opt)} className={`w-full flex items-center justify-between px-3 py-2 text-[11px] font-black rounded-xl transition-colors ${selected.includes(opt) ? 'bg-indigo-50 text-indigo-600' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  {opt || '(empty)'}
+                  {selected.includes(opt) && <CheckCircle size={14} className="text-indigo-600" />}
                 </button>
-             </div>
+              ))}
+            </div>
           </div>
-       </div>
+        )}
+      </div>
     </div>
   );
+};
+
+// --- REUSABLE DROPDOWN ---
+const GlobalDropdown = ({ label, icon: Icon, value, options, onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-700">
-      {/* Role Switcher Bar */}
-      <div className="bg-slate-900 text-white py-1.5 px-6 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest sticky top-0 z-[110] border-b border-white/5 shadow-lg">
-        <div className="flex gap-6">
-          <span className="text-blue-400 flex items-center gap-2"><Layers size={12}/> Rollout Environment v2.7</span>
-          <span className="text-slate-400">Internal & Practice Collaborative Shell</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-slate-500">Security: HIPAA Locked</span>
-          <div className="flex gap-1 p-0.5 bg-slate-800 rounded-lg">
-            {Object.values(ROLES).map(r => (
-              <button 
-                key={r}
-                onClick={() => { setRole(r); setCurrentPage('dashboard'); }}
-                className={`px-3 py-1 rounded-md transition-all ${role === r ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                {r}
-              </button>
+    <div className="flex flex-col gap-0.5 relative" ref={ref}>
+      <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{String(label)}</span>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 text-xs font-black cursor-pointer hover:text-indigo-400 transition-colors whitespace-nowrap"
+      >
+        {React.createElement(Icon, { size: 12, className: "text-indigo-500 shrink-0" })}
+        {String(value)} 
+        {React.createElement(ChevronDown, { size: 12, className: `transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}` })}
+      </div>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 min-w-[200px] bg-[#2d3748] border border-white/10 rounded-xl shadow-2xl z-[200] p-1 overflow-hidden animate-in fade-in zoom-in-95">
+          <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+            {options.map(opt => (
+              <button key={opt} onClick={() => { onSelect(opt); setIsOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold rounded-lg transition-colors ${value === opt ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-white/5'}`}>{String(opt)}</button>
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Navigation Sidebar */}
-        <nav className="w-full lg:w-80 bg-white border-r border-slate-100 p-8 hidden lg:flex flex-col h-screen sticky top-10">
-          <div className="flex items-center gap-4 mb-16">
-            <div className="w-14 h-14 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-blue-200">VS</div>
-            <div>
-              <h2 className="text-2xl font-black leading-none tracking-tighter">VoiceStack</h2>
-              <p className="text-[11px] text-blue-500 font-black uppercase tracking-widest mt-1">Rollout Workspace</p>
-            </div>
-          </div>
-
-          <div className="space-y-2 flex-grow">
-            <button onClick={() => setCurrentPage('dashboard')} className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold transition-all ${currentPage === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
-                <LayoutDashboard size={20} /> Practice Rollout
-            </button>
-            <button className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition-all">
-                <FileBadge size={20} /> Contract & Billing
-            </button>
-            <button className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition-all">
-                <div className="flex items-center gap-3"><MapPin size={20} /> Site Portfolio</div>
-                <Badge variant="indigo">100</Badge>
-            </button>
-            <div className="pt-8 border-t border-slate-50 space-y-2">
-              <button className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition-all">
-                <MessageSquare size={20} /> Clarifications
-              </button>
-              <button className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition-all">
-                <History size={20} /> Audit Trail
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-xl shadow-slate-900/10">
-             <div className="flex items-center gap-3 mb-4">
-               <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-xs shadow-lg">SL</div>
-               <div className="overflow-hidden">
-                 <p className="text-xs font-bold truncate">Dr. Sarah Lee</p>
-                 <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest">Practice Admin</p>
-               </div>
-             </div>
-             <button className="w-full py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold text-slate-400 hover:bg-white/10 transition-all">SIGN OUT</button>
-          </div>
-        </nav>
-
-        {/* Content Area */}
-        <main className="flex-grow p-6 lg:p-12 overflow-y-auto max-h-screen">
-           {currentPage === 'dashboard' && renderPracticeDashboard()}
-           {currentPage === 'location-detail' && renderLocationDetail()}
-        </main>
-      </div>
-
-      {showInviteModal && renderInviteModal()}
-      
-      {showCloneModal && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl p-10 animate-in zoom-in-95 duration-400 text-center">
-              <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm"><Copy size={36}/></div>
-              <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Clone Site Configuration</h3>
-              <p className="text-slate-400 text-sm mb-10 leading-relaxed px-4">Save time by copying the configuration from an existing location to this site.</p>
-              
-              <div className="space-y-3 mb-10">
-                <select className="w-full p-5 border-2 border-slate-100 bg-slate-50 rounded-3xl text-sm font-bold text-slate-700 outline-none appearance-none">
-                   <option>Lakeside Specialists (Live)</option>
-                   <option>Downtown Main Clinic (95%)</option>
-                </select>
-              </div>
-
-              <div className="flex gap-4">
-                 <button onClick={() => setShowCloneModal(false)} className="flex-1 py-4 font-black text-slate-400 hover:text-slate-600 uppercase text-xs tracking-widest">Cancel</button>
-                 <button className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all">Apply Setup</button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {showExportModal && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl p-10 animate-in zoom-in-95 duration-400 text-center">
-              <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm"><Download size={36}/></div>
-              <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Structured Data Export</h3>
-              <p className="text-slate-400 text-sm mb-10 leading-relaxed px-4">Generate an implementation-ready export for your selected rollout scope.</p>
-              
-              <div className="space-y-3 mb-10">
-                <button className="w-full p-5 border-2 border-blue-600 bg-blue-50/50 rounded-3xl text-sm font-bold text-blue-800 text-left flex justify-between items-center group transition-all">
-                   <div className="flex flex-col">
-                      <span>Full Rollout Data</span>
-                      <span className="text-[10px] text-blue-500 font-medium">All 100 Sites + Practice Defaults</span>
-                   </div>
-                   <div className="w-5 h-5 rounded-full border-4 border-blue-600 bg-white" />
-                </button>
-                <button className="w-full p-5 border-2 border-slate-100 bg-slate-50 rounded-3xl text-sm font-bold text-slate-400 text-left flex justify-between items-center hover:border-slate-200 transition-all">
-                   <div className="flex flex-col">
-                      <span>Live Sites Only</span>
-                      <span className="text-[10px] text-slate-400 font-medium">44 Locations • Production Ready</span>
-                   </div>
-                   <div className="w-5 h-5 rounded-full border-2 border-slate-200 bg-white" />
-                </button>
-              </div>
-
-              <div className="flex gap-4">
-                 <button onClick={() => setShowExportModal(false)} className="flex-1 py-4 font-black text-slate-400 hover:text-slate-600 uppercase text-xs tracking-widest">Cancel</button>
-                 <button className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all">Download .XLSX</button>
-              </div>
-           </div>
-        </div>
       )}
     </div>
   );
-}
+};
+
+const App = () => {
+  // --- STATE ---
+  const [viewMode, setViewMode] = useState('Source'); // Source, Campaign, Keyword
+  const [location, setLocation] = useState('All Locations');
+  const [dateRange, setDateRange] = useState('Last 7 days');
+
+  // --- TABLE FILTERS ---
+  const [selectedSources, setSelectedSources] = useState([]);
+  const [selectedCampaigns, setSelectedCampaigns] = useState([]);
+  const [typeFilter, setTypeFilter] = useState('All'); 
+
+  const uniqueSources = useMemo(() => [...new Set(MASTER_DATA.map(i => i.source))], []);
+  const uniqueCampaigns = useMemo(() => [...new Set(MASTER_DATA.filter(i => i.channelType === 'Dynamic').map(i => i.campaign))].filter(Boolean), []);
+
+  // --- DYNAMIC AGGREGATION & FILTERING ENGINE ---
+  const aggregatedRows = useMemo(() => {
+    const groups = {};
+    let pool = MASTER_DATA;
+
+    // Apply Global and Table Filters
+    if (location !== 'All Locations') pool = pool.filter(i => i.location === location);
+    if (typeFilter !== 'All') pool = pool.filter(i => i.channelType === typeFilter);
+    if (selectedSources.length > 0) pool = pool.filter(i => selectedSources.includes(i.source));
+    if (selectedCampaigns.length > 0 && typeFilter !== 'Static') {
+      pool = pool.filter(i => selectedCampaigns.includes(i.campaign));
+    }
+
+    pool.forEach(item => {
+      // Define row identifier based on ViewMode
+      let identifier = `${item.location}-`;
+      if (viewMode === 'Source') identifier += `${item.source}`;
+      else if (viewMode === 'Campaign') identifier += `${item.campaign || 'None'}`;
+      else if (viewMode === 'Keyword') identifier += `${item.keyword || 'None'}`;
+      
+      if (!groups[identifier]) {
+        groups[identifier] = { 
+          ...item,
+          total: 0, answered: 0, missed: 0,
+          npTotal: 0, npOpp: 0, npBooked: 0, npNotBooked: 0,
+          epTotal: 0, epOpp: 0, epBooked: 0, epNotBooked: 0
+        };
+      }
+      
+      groups[identifier].total += item.total;
+      groups[identifier].answered += item.answered;
+      groups[identifier].missed += item.missed;
+      groups[identifier].npTotal += item.npTotal;
+      groups[identifier].npOpp += item.npOpp;
+      groups[identifier].npBooked += item.npBooked;
+      groups[identifier].npNotBooked += item.npNotBooked;
+      groups[identifier].epTotal += item.epTotal;
+      groups[identifier].epOpp += item.epOpp;
+      groups[identifier].epBooked += item.epBooked;
+      groups[identifier].epNotBooked += item.epNotBooked;
+    });
+
+    return Object.values(groups).sort((a, b) => 
+        a.location.localeCompare(b.location) || 
+        b.total - a.total
+    );
+  }, [viewMode, location, selectedSources, selectedCampaigns, typeFilter]);
+
+  const tableSpans = useMemo(() => {
+    const locSpans = {};
+    const processedLocs = new Set();
+
+    aggregatedRows.forEach((row, index) => {
+      if (!processedLocs.has(row.location)) {
+        let count = 0;
+        for (let i = index; i < aggregatedRows.length; i++) {
+          if (aggregatedRows[i].location === row.location) count++; else break;
+        }
+        locSpans[index] = count;
+        processedLocs.add(row.location);
+      }
+    });
+
+    return { locSpans };
+  }, [aggregatedRows]);
+
+  const toggleSource = (val) => setSelectedSources(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  const toggleCampaign = (val) => setSelectedCampaigns(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased pb-10 flex flex-col">
+      <header className="bg-[#1e293b] text-white py-4 sticky top-0 z-[100] shadow-xl border-b border-white/5">
+        <div className="max-w-[1600px] mx-auto px-6 h-full flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest px-1">Global Perspective</span>
+              <div className="flex bg-slate-800 p-1 rounded-xl border border-white/5">
+                {[
+                    { id: 'Source', icon: Globe }, 
+                    { id: 'Campaign', icon: Layers }, 
+                    { id: 'Keyword', icon: Search }
+                ].map(v => (
+                  <button key={v.id} onClick={() => setViewMode(v.id)} className={`flex items-center gap-2 px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${viewMode === v.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>
+                    {React.createElement(v.icon, { size: 12 })} {v.id}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center flex-wrap gap-8 border-l border-white/10 pl-8">
+               <GlobalDropdown label="Location Area" icon={MapPin} value={location} options={['All Locations', 'Dallas', 'East Town']} onSelect={setLocation} />
+               <GlobalDropdown label="Timeframe" icon={Calendar} value={dateRange} options={['Last 7 days', 'Last 30 days']} onSelect={setDateRange} />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-8 flex-1">
+        {/* CHARTS */}
+        <section className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-8 grid grid-cols-1 md:grid-cols-3 gap-10">
+          <StackedBarChart title={`Total Calls Distribution`} metricLabel="Calls" data={aggregatedRows.map(r => ({ name: r[viewMode.toLowerCase()] || (viewMode === 'Source' ? r.source : 'Static'), np: r.npTotal, ep: r.epTotal, total: r.total }))} />
+          <StackedBarChart title={`Qualified Opportunities`} metricLabel="Opps" data={aggregatedRows.map(r => ({ name: r[viewMode.toLowerCase()] || (viewMode === 'Source' ? r.source : 'Static'), np: r.npOpp, ep: r.epOpp, total: r.npOpp + r.epOpp }))} />
+          <StackedBarChart title={`Confirmed Bookings`} metricLabel="Booked" data={aggregatedRows.map(r => ({ name: r[viewMode.toLowerCase()] || (viewMode === 'Source' ? r.source : 'Static'), np: r.npBooked, ep: r.epBooked, total: r.npBooked + r.epBooked }))} />
+        </section>
+
+        {/* MASTER INTELLIGENCE LEDGER */}
+        <section className="bg-white rounded-[32px] border border-slate-200 shadow-2xl overflow-hidden">
+          <div className="px-8 py-6 border-b border-slate-100 flex flex-wrap items-end gap-6 bg-slate-50/40">
+             <div className="flex flex-col gap-1 mr-4">
+                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest px-1">Concept Filter</span>
+                <div className="flex bg-white border border-slate-200 p-1 rounded-xl shadow-sm h-[40px]">
+                   {['All', 'Static', 'Dynamic'].map(t => (
+                     <button key={t} onClick={() => setTypeFilter(t)} className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${typeFilter === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{t}</button>
+                   ))}
+                </div>
+             </div>
+
+             <MultiSelectFilter label="Filter Source" options={uniqueSources} selected={selectedSources} onToggle={toggleSource} onClear={() => setSelectedSources([])} />
+             
+             <MultiSelectFilter 
+                label="Filter Campaign" 
+                options={uniqueCampaigns} 
+                selected={selectedCampaigns} 
+                onToggle={toggleCampaign} 
+                onClear={() => setSelectedCampaigns([])} 
+                disabled={typeFilter === 'Static'}
+             />
+
+             <div className="ml-auto flex items-center gap-3 mb-0.5">
+                <button onClick={() => { setSelectedSources([]); setSelectedCampaigns([]); setTypeFilter('All'); }} className="flex items-center gap-2 text-[10px] font-black text-rose-500 hover:text-rose-600 bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-colors">
+                    <X size={14} /> Reset
+                </button>
+                <button className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-xl text-[10px] font-black hover:bg-indigo-500 transition-all shadow-lg uppercase tracking-tight">
+                    <Download size={14} /> Export Table
+                </button>
+             </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest border-b border-slate-200">
+                  <th rowSpan="2" className="px-4 py-4 border-r border-slate-200 min-w-[100px]">Location</th>
+                  
+                  {viewMode === 'Source' && <th rowSpan="2" className="px-4 py-4 border-r border-slate-200 min-w-[140px]">Source</th>}
+                  {viewMode === 'Campaign' && <th rowSpan="2" className="px-4 py-4 border-r border-slate-200 min-w-[160px]">Campaign</th>}
+                  {viewMode === 'Keyword' && <th rowSpan="2" className="px-4 py-4 border-r border-slate-200 min-w-[160px]">Keyword</th>}
+                  
+                  <th rowSpan="2" className="px-4 py-4 border-r border-slate-200 text-center bg-indigo-50/20">Total<br/>Calls</th>
+                  <th rowSpan="2" className="px-3 py-4 border-r border-slate-200 text-center">Answered</th>
+                  <th rowSpan="2" className="px-3 py-4 border-r border-slate-200 text-center">Missed</th>
+                  <th colSpan="4" className="px-4 py-3 text-center border-b border-r border-slate-200 bg-indigo-50/40 text-indigo-700 font-black tracking-wider">New Patient Performance</th>
+                  <th colSpan="4" className="px-4 py-3 text-center border-b border-r border-slate-200 bg-emerald-50/40 text-emerald-700 font-black tracking-wider">Existing Patient Performance</th>
+                </tr>
+                <tr className="bg-slate-50/50 text-[9px] font-bold text-slate-400 border-b border-slate-100">
+                  <th className="px-3 py-3 text-center">Total</th><th className="px-3 py-3 text-center">Opportunity</th><th className="px-3 py-3 text-center">Booked</th><th className="px-3 py-3 text-center border-r border-slate-200">Not Booked</th>
+                  <th className="px-3 py-3 text-center">Total</th><th className="px-3 py-3 text-center">Opportunity</th><th className="px-3 py-3 text-center">Booked</th><th className="px-3 py-3 text-center">Not Booked</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {aggregatedRows.length > 0 ? aggregatedRows.map((row, idx) => {
+                  const locSpan = tableSpans.locSpans[idx];
+                  const totalOpps = row.npOpp + row.epOpp;
+                  
+                  return (
+                    <tr key={idx} className="hover:bg-indigo-50/5 transition-all group">
+                      {locSpan && (
+                        <td rowSpan={locSpan} className="px-4 py-5 font-black text-slate-900 border-r border-slate-100 bg-slate-50/10 align-top">
+                          {row.location}
+                        </td>
+                      )}
+                      
+                      {viewMode === 'Source' && (
+                        <td className="px-4 py-5 font-black text-slate-900 border-r border-slate-50">
+                          {row.source}
+                        </td>
+                      )}
+
+                      {viewMode === 'Campaign' && (
+                        <td className="px-4 py-5 font-black text-indigo-600 border-r border-slate-50">
+                          {row.campaign || 'N/A'}
+                        </td>
+                      )}
+
+                      {viewMode === 'Keyword' && (
+                        <td className="px-4 py-5 font-medium text-slate-500 border-r border-slate-50">
+                           {row.keyword || '-'}
+                        </td>
+                      )}
+
+                      <td className="px-4 py-5 text-center font-black text-slate-900 border-r border-slate-100 bg-indigo-50/10">{row.total}</td>
+                      <td className="px-3 py-5 text-center text-slate-500 border-r border-slate-50">{row.answered}</td>
+                      <td className="px-3 py-5 text-center text-rose-300 border-r border-slate-100">{row.missed}</td>
+                      
+                      {/* New Patient Segment */}
+                      <td className="px-3 py-5 text-center text-slate-600 font-bold bg-indigo-50/5">{formatValue(row.npTotal, row.total)}</td>
+                      <td className="px-3 py-5 text-center text-slate-600 font-bold bg-indigo-50/5">{formatValue(row.npOpp, row.total, true, totalOpps)}</td>
+                      <td className="px-3 py-5 text-center text-indigo-600 font-black bg-indigo-50/15">{formatValue(row.npBooked, row.total)}</td>
+                      <td className="px-3 py-5 text-center text-rose-400 font-bold border-r border-slate-100 bg-indigo-50/5">{formatValue(row.npNotBooked, row.total)}</td>
+
+                      {/* Existing Patient Segment */}
+                      <td className="px-3 py-5 text-center text-slate-600 font-bold bg-emerald-50/5">{row.epTotal}</td>
+                      <td className="px-3 py-5 text-center text-slate-600 font-bold bg-emerald-50/5">{formatValue(row.epOpp, row.total, true, totalOpps)}</td>
+                      <td className="px-3 py-5 text-center text-emerald-600 font-black bg-emerald-50/15">{formatValue(row.epBooked, row.total)}</td>
+                      <td className="px-3 py-5 text-center text-rose-400 font-bold bg-emerald-50/5">{formatValue(row.epNotBooked, row.total)}</td>
+                    </tr>
+                  );
+                }) : (
+                  <tr><td colSpan="14" className="px-8 py-32 text-center text-slate-300 uppercase font-black tracking-widest opacity-40">No data matching filters</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+// --- STACKED HORIZONTAL BAR CHART COMPONENT ---
+const StackedBarChart = ({ title, metricLabel, data }) => {
+  const sortedData = useMemo(() => [...data].sort((a, b) => b.total - a.total).slice(0, 10), [data]);
+  const [hoveredKey, setHoveredKey] = useState(null);
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length && hoveredKey) {
+      const dataPoint = payload.find(p => p.dataKey === hoveredKey);
+      const total = payload[0].payload.total;
+      const labelPrefix = hoveredKey === 'np' ? 'New Patient' : 'Existing Patient';
+      return (
+        <div className="bg-[#2b579a] text-white p-3 rounded shadow-2xl text-[12px] font-bold animate-in fade-in duration-150">
+          <p className="whitespace-nowrap">{labelPrefix} {metricLabel}: {dataPoint.value}</p>
+          <p className="whitespace-nowrap border-t border-white/20 mt-1.5 pt-1.5 opacity-80 font-medium">Total Volume: {total}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="flex flex-col h-[320px] min-w-0">
+      <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6 px-1">{String(title)}</h4>
+      <div className="flex-1 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart layout="vertical" data={sortedData} margin={{ top: 5, right: 40, left: 80, bottom: 5 }}>
+            <XAxis type="number" hide />
+            <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+            <Bar dataKey="np" stackId="a" fill={COLORS.new} barSize={16} onMouseEnter={() => setHoveredKey('np')} onMouseLeave={() => setHoveredKey(null)} />
+            <Bar dataKey="ep" stackId="a" fill={'#D1D5DB'} radius={[0, 4, 4, 0]} barSize={16} onMouseEnter={() => setHoveredKey('ep')} onMouseLeave={() => setHoveredKey(null)} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-4 flex items-center justify-end gap-4 text-[8px] font-black uppercase tracking-widest text-slate-400">
+         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: COLORS.new }}></div> New Patient</div>
+         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-300"></div> Existing Patient</div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
